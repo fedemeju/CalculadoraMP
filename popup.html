@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora MP V2</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    :root {
+      --bg: #ffffff;
+      --surface: #f6f7f9;
+      --surface-2: #eceef2;
+      --border: #e3e6eb;
+      --text: #15181d;
+      --muted: #5f6672;
+      --faint: #7b828e;
+      --yellow: #ffe600;
+      --yellow-ink: #7a6000;
+      --blue: #0077c2;
+      --green: #11864b;
+      --red: #d42a3d;
+      --c-qr: #0a9be0;
+      --c-point: #5b6cff;
+      --c-trans: #9a5cf0;
+      --c-otro: #9aa1ad;
+      --radius: 14px;
+      --radius-sm: 9px;
+    }
+
+    body {
+      width: 360px;
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13.5px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+    .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+    button { font: inherit; color: inherit; }
+    button:focus-visible, input:focus-visible + .slider, summary:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: radial-gradient(120% 160% at 0% 0%, rgba(255,230,0,0.22), transparent 60%);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 34px; height: 34px; border-radius: 9px; display: block;
+      box-shadow: 0 3px 10px rgba(230,200,0,0.35);
+    }
+    .title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .v2 { font-size: 10px; font-weight: 800; color: #111; background: var(--yellow); padding: 1px 6px; border-radius: 6px; }
+    .subtitle { font-size: 11.5px; color: var(--muted); }
+
+    .body { padding: 14px 16px 12px; }
+
+    .label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+
+    /* ── Configurar turno ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+    .turno { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); font-weight: 600; }
+    .link { background: none; border: none; color: var(--blue); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0 2px; border-radius: 4px; }
+    .link:hover { text-decoration: underline; }
+
+    input[type="date"], input[type="time"] {
+      width: 100%;
+      background: #fff; border: 1px solid var(--border);
+      color: var(--text); color-scheme: light;
+      font: inherit; font-size: 13px; font-variant-numeric: tabular-nums;
+      padding: 7px 9px; border-radius: var(--radius-sm); outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type="date"]:focus, input[type="time"]:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,119,194,0.15); }
+
+    .opt { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .opt-text { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .opt-text small { font-weight: 400; color: var(--muted); font-size: 11.5px; }
+    .switch { position: relative; width: 34px; height: 20px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: var(--surface-2); border: 1px solid #d5d9e0; border-radius: 20px;
+      transition: background .2s, border-color .2s;
+    }
+    .slider::before {
+      content: ""; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px;
+      background: #fff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      transition: transform .2s;
+    }
+    .switch input:checked + .slider { background: var(--yellow); border-color: #e0c800; }
+    .switch input:checked + .slider::before { transform: translateX(14px); }
+
+    .btn-main {
+      width: 100%; margin-top: 12px;
+      background: var(--yellow); color: #111;
+      border: none; border-radius: var(--radius);
+      padding: 12px 14px; font-size: 14.5px; font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(230,200,0,0.35);
+      transition: transform .1s, filter .15s;
+    }
+    .btn-main:hover { filter: brightness(1.04); }
+    .btn-main:active { transform: scale(.985); }
+    .btn-main:disabled { cursor: progress; background: var(--surface-2); color: var(--muted); box-shadow: none; }
+
+    /* ── Turno calculado (compacto) ── */
+    .turno-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 10px 9px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .turno-bar .tb-text { flex: 1; min-width: 0; }
+    .tb-range { font-size: 13px; font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-sm {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .btn-sm:hover { background: var(--surface-2); }
+    .btn-sm:disabled { opacity: .5; cursor: progress; }
+    .btn-sm.icon { font-size: 15px; line-height: 1; padding: 5px 9px; }
+
+    /* ── Progreso ── */
+    .progreso { margin-top: 10px; }
+    .progreso-bar { height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+    .progreso-bar span { display: block; height: 100%; width: 0; background: var(--yellow); border-radius: 4px; transition: width .35s ease; }
+    .progreso-txt { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+    .warning {
+      margin-top: 10px;
+      background: #fff1f2; border: 1px solid #ffc9cf;
+      color: #8f1a28; border-radius: var(--radius-sm); padding: 9px 11px; font-size: 12.5px;
+    }
+    .warning b { color: #6e0f1b; }
+
+    /* ── Resultados ── */
+    .results { margin-top: 12px; }
+
+    .hero {
+      border-radius: var(--radius); padding: 13px 14px;
+      background:
+        radial-gradient(140% 120% at 100% 0%, rgba(10,155,224,0.10), transparent 55%),
+        linear-gradient(160deg, #ffffff, #f5f8fb);
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 20px rgba(20,30,50,0.06);
+    }
+    .hero-total { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin-top: 2px; }
+    .hero-sub { font-size: 12px; color: var(--muted); }
+
+    .notice {
+      margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm);
+      background: #fff4e5; border: 1px solid #ffd8a8; color: #8a4500; font-size: 12px;
+    }
+
+    .rows { margin-top: 8px; }
+    .row { padding: 8px 4px; border-bottom: 1px solid var(--border); }
+    .row:last-child { border-bottom: none; }
+    .row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .row-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .sw { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+    .row-monto { font-weight: 700; font-size: 15px; }
+    .row-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); padding-left: 17px; margin-top: 1px; }
+    .row-meta .neg { color: var(--red); }
+    .row-bar { height: 3px; border-radius: 3px; background: var(--surface-2); margin: 6px 0 0 17px; overflow: hidden; }
+    .row-bar span { display: block; height: 100%; border-radius: 3px; }
+
+    .devol {
+      margin-top: 8px; padding: 0 10px;
+      border: 1px dashed #f0a3ad; border-radius: var(--radius-sm); background: #fff7f8;
+    }
+    .devol summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 0; }
+    .devol summary::-webkit-details-marker { display: none; }
+    .devol summary b { color: var(--red); font-size: 12.5px; }
+    .devol summary small { color: var(--muted); font-size: 11.5px; font-weight: 400; margin-left: 4px; }
+    .devol summary .num { color: var(--red); font-weight: 700; white-space: nowrap; }
+    .devol summary .num::after { content: " ▾"; font-size: 11px; display: inline-block; transition: transform .15s; }
+    .devol[open] summary .num::after { transform: rotate(180deg); }
+    .devol-list { padding-bottom: 6px; }
+
+    .mov { display: grid; grid-template-columns: 42px 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; padding: 3px 2px; }
+    .mov .h { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .tag { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 5px; background: var(--surface-2); }
+    .tag.QR { color: #0071a8; } .tag.Point { color: #3f4fe0; }
+    .tag.Transferencia { color: #7a3fd0; } .tag.Otro { color: var(--muted); }
+    .mov .m { text-align: right; font-variant-numeric: tabular-nums; }
+    .mov .m.neg { color: var(--red); }
+    .mov .op { color: var(--faint); font-size: 11px; margin-left: 5px; }
+
+    details.detalle { margin-top: 8px; }
+    details.detalle summary {
+      list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--blue);
+      padding: 7px 4px; border-radius: 6px; display: flex; justify-content: space-between;
+    }
+    details.detalle summary::-webkit-details-marker { display: none; }
+    details.detalle summary::after { content: "▾"; transition: transform .15s; }
+    details.detalle[open] summary::after { transform: rotate(180deg); }
+    .detalle-list { padding: 2px 8px 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+    .detalle-day { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 2px; }
+    .ign { font-size: 11.5px; color: var(--muted); padding: 8px 2px 2px; border-top: 1px solid var(--border); margin-top: 6px; }
+
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+    .devol-note { font-size: 11.5px; color: var(--muted); padding-bottom: 3px; }
+    .btn {
+      padding: 9px 10px; border-radius: var(--radius-sm);
+      background: #fff; border: 1px solid var(--border);
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .btn:hover { background: var(--surface); }
+    .btn.primary {
+      grid-column: 1 / -1; padding: 11px; font-size: 14px;
+      background: #1f62cc; border-color: #1f62cc; color: #fff;
+      box-shadow: 0 4px 14px rgba(31,98,204,0.25);
+    }
+    .btn.primary:hover { background: #1a55b3; }
+    .btn.done { color: var(--green); border-color: #b7e6cc; background: #e9f8f0; }
+    .btn.primary.done { color: #fff; background: var(--green); border-color: var(--green); }
+
+    .meta { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 10px; }
+    .meta .fast { color: var(--yellow-ink); font-weight: 600; }
+
+    #btn-debug { background: none; border: none; color: var(--faint); font-size: 11px; cursor: pointer; padding: 0 2px; border-radius: 4px; }
+    #btn-debug:hover { color: var(--muted); text-decoration: underline; }
+    .debug {
+      margin-top: 8px; max-height: 200px; overflow: auto;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 8px 10px; font-family: Consolas, monospace; font-size: 11px; color: var(--muted);
+      white-space: pre-wrap;
+    }
+
+    .footer { display: flex; justify-content: space-between; padding: 7px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--faint); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <img class="logo" src="icon128.png" alt="">
+  <div>
+    <div class="title">Calculadora MP <span class="v2">V2</span></div>
+    <div class="subtitle">cobros por turno</div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- Paso 1: elegir el turno -->
+  <div id="config">
+    <div class="card">
+      <div class="label">Horario del turno</div>
+      <div class="turno">
+        <div class="field">
+          <div class="field-head"><span>Desde</span></div>
+          <input type="date" id="fecha-desde" aria-label="Fecha desde">
+          <input type="time" id="hora-desde" aria-label="Hora desde">
+        </div>
+        <div class="field">
+          <div class="field-head"><span>Hasta</span><button class="link" id="btn-ahora" title="Poner fecha y hora actual">ahora</button></div>
+          <input type="date" id="fecha-hasta" aria-label="Fecha hasta">
+          <input type="time" id="hora-hasta" aria-label="Hora hasta">
+        </div>
+      </div>
+      <div class="opt" title="Lee las páginas siguientes en segundo plano, después de comprobar que la página 1 da exactamente igual. Si no coincide, lee página por página.">
+        <span class="opt-text">⚡ Modo rápido <small>verificado</small></span>
+        <label class="switch"><input type="checkbox" id="modo-rapido" checked aria-label="Modo rápido"><span class="slider"></span></label>
+      </div>
+    </div>
+    <button class="btn-main" id="btn-calcular">Calcular turno</button>
+  </div>
+
+  <!-- Paso 2: turno ya calculado (compacto) -->
+  <div class="turno-bar" id="turno-bar" hidden>
+    <div class="tb-text">
+      <div class="label">Turno</div>
+      <div class="tb-range num" id="tb-range"></div>
+    </div>
+    <button class="btn-sm" id="btn-cambiar">Cambiar</button>
+    <button class="btn-sm icon" id="btn-recalcular" title="Recalcular (vuelve a leer Mercado Pago)" aria-label="Recalcular">↻</button>
+  </div>
+
+  <div class="progreso" id="progreso" hidden>
+    <div class="progreso-bar"><span id="progreso-bar"></span></div>
+    <div class="progreso-txt num" id="progreso-txt"></div>
+  </div>
+
+  <div class="warning" id="warning" hidden></div>
+
+  <div class="results" id="results" hidden>
+    <div class="hero">
+      <div class="label">Total del turno</div>
+      <div class="hero-total num" id="total">$0,00</div>
+      <div class="hero-sub num" id="hero-sub"></div>
+    </div>
+
+    <div id="notices"></div>
+    <div class="rows" id="rows"></div>
+
+    <div class="actions">
+      <button class="btn primary" id="btn-cajasnack">🧾 Copiar para CajaSnack</button>
+      <button class="btn" id="btn-copy">📋 Copiar resumen</button>
+      <button class="btn" id="btn-reset">Nuevo cálculo</button>
+    </div>
+
+    <div id="devol-box"></div>
+    <details class="detalle" id="detalle">
+      <summary id="detalle-sum">Ver todos los movimientos</summary>
+      <div class="detalle-list" id="detalle-list"></div>
+    </details>
+
+    <div class="meta num" id="meta"></div>
+  </div>
+
+  <div class="debug" id="debug" hidden></div>
+</div>
+
+<div class="footer"><span>by el Chapu · v2.1</span><button id="btn-debug">debug</button></div>
+
+<script src="calculo.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
